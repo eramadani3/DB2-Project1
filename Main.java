@@ -1,7 +1,7 @@
 import java.util.Scanner;
 
 public class Main {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception{
         Scanner sc = new Scanner(System.in);
         System.out.println("Enter the Buffer Pool size: ");
         int poolSize = sc.nextInt();
@@ -19,12 +19,12 @@ public class Main {
             }
             else if(commandArray[0].toUpperCase().equals("PIN")){
                 int recordNumber = Integer.parseInt(commandArray[1]);
-                String record = commandArray[2];
+                String record = commandArray[1];
                 System.out.println(pool.PIN(recordNumber));
             } 
             else if(commandArray[0].toUpperCase().equals("UNPIN")) {
                 int recordNumber = Integer.parseInt(commandArray[1]);
-                String record = commandArray[2];
+                String record = commandArray[1];
                 System.out.println(pool.UNPIN(recordNumber));
             } else if(commandArray[0].toUpperCase().equals("SET")){
                 int recordNumber = Integer.parseInt(commandArray[1]);

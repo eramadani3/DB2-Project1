@@ -26,7 +26,7 @@ public class Frame{
     public String[] getContent() {
         return content;
     }
-    public void setContent(int lineNum, String str) {
+    public void setContent(String[] content) {
         this.content = content;
     }
     public boolean isDirty() {
@@ -51,11 +51,15 @@ public class Frame{
     public String getRecord(int blockID){
         return content[blockID-1];
     }
+    public void setRecord(int blockID, String newContent){
+        content[blockID-1] = newContent;
+        dirty=true;
+    }
 
     
     public void readFile(int recordNumber) throws IOException {
     
-      String fileName = "F" + recordNumber + ".txt";
+      String fileName = "./resources/F" + recordNumber + ".txt";
 
       // reading file
       try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
@@ -78,7 +82,7 @@ public class Frame{
     }
 
     public void writeToFile(){
-        String fileName = "F" + blockId + ".txt";
+        String fileName = "./resources/F" + blockId + ".txt";
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName))) {
             for(int i = 0; i < content.length; i++){
                 bw.write(content[i]);

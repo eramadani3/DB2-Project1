@@ -3,7 +3,6 @@ import java.io.IOException;
 
 public class BufferPool {
     private Frame[] frames;
-    private static BufferPool instance;
     private int lastRemovedFrame =0;
     private int pinnedFrames = 0;
     private int numberFrames = 0;
@@ -40,45 +39,53 @@ public class BufferPool {
     }
 
     public int[] loadBlockFromDisk(int record) throws IOException {
-        //Get the block number
-        int blockID = (record % 100 == 0) ? record / 100 : record / 100 + 1;
-        //Get the line number
-        int line = (record % 100 == 0) ? 100 : record % 100;
+        int blockID = (record % 100 == 0) ? (record / 100) : (record / 100) + 1;
+        int lineNumber = (record % 100 == 0) ? 100 : (record % 100);
 
 
-        int frameNum = search(blockID);
-        if (frameNum != -1) {
-            frameNum =findEmptyFrame();
+        // check if blockID is in the buffer
+        int frameNumber = search(blockID);
 
-            if(frameNum == -1){
-                frameNum = selectFrameToEvict();
-            }else{
-                frames[frameNum].getRecord(blockID);
-                frames[frameNum].setBlockId(blockID);
+        if (frameNumber == -1) {
+
+            frameNumber = findEmptyFrame();
+            if (frameNumber == -1) {
+
+                frameNumber = selectFrameToEvict();
+
+                if (frameNumber == -1) {
+                    return new int[] {-1, -1};
+                } else {
+                    frames[frameNumber].readFile(blockID);
+                    frames[frameNumber].setBlockId(blockID);
+                }
+            } else {
+
+                frames[frameNumber].readFile(blockID);
+                frames[frameNumber].setBlockId(blockID);
             }
-        }else{
-            frames[frameNum].getRecord(blockID);
-            frames[frameNum].setBlockId(blockID);
+            lastRemovedFrame = frameNumber;
+            System.out.println("Block " + blockID + " loaded into frame " + frameNumber);
+        } else {
+            System.out.println("Block " + blockID + " already in buffer in frame " + frameNumber);
         }
-        lastRemovedFrame = frameNum;
-        return new int[] {frameNum, line};
+        return new int[] {frameNumber, lineNumber};
     }
-    
+
 
     public int selectFrameToEvict() {
-        for (int i = 0; i < frames.length; i++) {
-            if (!frames[i].isPinned()) {
-                return i; // found an unpinned frame to evict
-            }
-        }
         lastRemovedFrame = (lastRemovedFrame == numberFrames - 1) ? 0 : lastRemovedFrame + 1;
         for (int i = lastRemovedFrame; i < numberFrames + (numberFrames - lastRemovedFrame); i++) {
             int k = i % numberFrames;
             if (!frames[k].isPinned()) {
                 return k; // found an unpinned frame to evict
+            }else{
+                frames[k].writeToFile();
+                frames[k].setDirty(false);
+                return i;
             }
         }
-        return -1; // All frames are pinned, cannot evict any
+        return -1; // no unpinned frame found
     }
 
     public int findEmptyFrame() {
@@ -93,7 +100,7 @@ public class BufferPool {
     
 
     public String GET(int recordIndex) throws Exception {
-        if (recordIndex < 1 || recordIndex > 1000) {
+        if (recordIndex < 1 || recordIndex > 700) {
             throw new Exception("Record index out of range.");
         }
         int[] values = loadBlockFromDisk(recordIndex);
@@ -106,7 +113,7 @@ public class BufferPool {
         }
     }
     public String SET(int k, String str) throws Exception {
-        if (k < 1 || k > 1000) {
+        if (k < 1 || k > 700) {
             throw new Exception("Record index out of range.");
         }
         int[] values = loadBlockFromDisk(k);
@@ -117,7 +124,7 @@ public class BufferPool {
             return "Record " + k + " is not in the database";
         }
         else{
-            frames[frameNum].setContent(lineNum, str);
+            frames[frameNum].setRecord(lineNum, str);
             frames[frameNum].setDirty(true);
             return "Record " + k + " is in block " + frames[frameNum].getBlockId() + " and line " + lineNum;
         }
@@ -134,8 +141,7 @@ public class BufferPool {
             return "Record " + blockId + " is not in the database";
         }
         else{
-            frames[values[0]].setPinned(true);
-            pinnedFrames++;
+            frames[values[0]].pinFrame();
             return "Block " + blockId + " is pinned";
         }
     }
